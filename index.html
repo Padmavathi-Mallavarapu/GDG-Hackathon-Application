@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Fee Reminder System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login/Signup Section -->
+    <div id="authSection" class="container">
+        <div class="auth-box">
+            <h1>Student Fee Reminder System</h1>
+            
+            <!-- Login Form -->
+            <div id="loginForm" class="form-container">
+                <h2>Login</h2>
+                <input type="email" id="loginEmail" placeholder="Email" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button onclick="login()">Login</button>
+                <p>Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a></p>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" class="form-container" style="display: none;">
+                <h2>Sign Up</h2>
+                <input type="text" id="signupName" placeholder="Full Name" required>
+                <input type="email" id="signupEmail" placeholder="Email" required>
+                <input type="password" id="signupPassword" placeholder="Password (min 6 characters)" required>
+                <input type="tel" id="signupPhone" placeholder="Phone Number" required>
+                <select id="signupRole">
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button onclick="signup()">Sign Up</button>
+                <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="container" style="display: none;">
+        <div class="dashboard">
+            <div class="header">
+                <h1>Admin Dashboard</h1>
+                <div class="user-info">
+                    <span id="adminName"></span>
+                    <button onclick="logout()" class="logout-btn">Logout</button>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('students')">Students</button>
+                <button class="tab-btn" onclick="showTab('fees')">Fee Management</button>
+                <button class="tab-btn" onclick="showTab('payments')">Payments</button>
+                <button class="tab-btn" onclick="showTab('reminders')">Reminders</button>
+            </div>
+
+            <!-- Students Tab -->
+            <div id="studentsTab" class="tab-content">
+                <h2>Student Management</h2>
+                <button onclick="showAddStudentForm()" class="primary-btn">Add New Student</button>
+                
+                <div id="addStudentForm" class="form-card" style="display: none;">
+                    <h3>Add New Student</h3>
+                    <input type="text" id="studentName" placeholder="Student Name" required>
+                    <input type="text" id="rollNumber" placeholder="Roll Number" required>
+                    <input type="text" id="studentClass" placeholder="Class" required>
+                    <input type="text" id="section" placeholder="Section" required>
+                    <input type="email" id="studentEmail" placeholder="Email" required>
+                    <input type="tel" id="parentContact" placeholder="Parent Contact" required>
+                    <button onclick="addStudent()">Add Student</button>
+                    <button onclick="hideAddStudentForm()" class="secondary-btn">Cancel</button>
+                </div>
+
+                <div id="studentsList" class="data-table">
+                    <h3>All Students</h3>
+                    <table id="studentsTable">
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Name</th>
+                                <th>Class</th>
+                                <th>Section</th>
+                                <th>Email</th>
+                                <th>Contact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Fee Management Tab -->
+            <div id="feesTab" class="tab-content" style="display: none;">
+                <h2>Fee Management</h2>
+                <button onclick="showAddFeeForm()" class="primary-btn">Add Fee Record</button>
+                
+                <div id="addFeeForm" class="form-card" style="display: none;">
+                    <h3>Add Fee Record</h3>
+                    <select id="feeStudentSelect"></select>
+                    <input type="text" id="academicYear" placeholder="Academic Year (e.g., 2024-25)" required>
+                    <input type="number" id="totalFee" placeholder="Total Fee Amount" required>
+                    <input type="date" id="dueDate" required>
+                    <button onclick="addFeeRecord()">Add Fee Record</button>
+                    <button onclick="hideAddFeeForm()" class="secondary-btn">Cancel</button>
+                </div>
+
+                <div id="feesList" class="data-table">
+                    <h3>All Fee Records</h3>
+                    <table id="feesTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Roll No</th>
+                                <th>Academic Year</th>
+                                <th>Total Fee</th>
+                                <th>Paid</th>
+                                <th>Remaining</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Payments Tab -->
+            <div id="paymentsTab" class="tab-content" style="display: none;">
+                <h2>Record Payment</h2>
+                <button onclick="showAddPaymentForm()" class="primary-btn">Add Payment</button>
+                
+                <div id="addPaymentForm" class="form-card" style="display: none;">
+                    <h3>Record New Payment</h3>
+                    <select id="paymentStudentSelect"></select>
+                    <input type="number" id="paymentAmount" placeholder="Payment Amount" required>
+                    <input type="date" id="paymentDate" required>
+                    <input type="text" id="paymentMethod" placeholder="Payment Method (Cash/Online/Cheque)" required>
+                    <input type="text" id="receiptNumber" placeholder="Receipt Number" required>
+                    <button onclick="addPayment()">Record Payment</button>
+                    <button onclick="hideAddPaymentForm()" class="secondary-btn">Cancel</button>
+                </div>
+
+                <div id="paymentsList" class="data-table">
+                    <h3>Payment History</h3>
+                    <table id="paymentsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Student</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Receipt No</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reminders Tab -->
+            <div id="remindersTab" class="tab-content" style="display: none;">
+                <h2>Fee Reminders</h2>
+                <div class="reminder-stats">
+                    <div class="stat-card">
+                        <h3 id="overdueCount">0</h3>
+                        <p>Overdue Fees</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 id="dueSoonCount">0</h3>
+                        <p>Due Within 7 Days</p>
+                    </div>
+                </div>
+                <div id="remindersList" class="data-table">
+                    <h3>Students Requiring Reminders</h3>
+                    <table id="remindersTable">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Contact</th>
+                                <th>Remaining Fee</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="remindersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Dashboard -->
+    <div id="studentDashboard" class="container" style="display: none;">
+        <div class="dashboard">
+            <div class="header">
+                <h1>Student Dashboard</h1>
+                <div class="user-info">
+                    <span id="studentName"></span>
+                    <button onclick="logout()" class="logout-btn">Logout</button>
+                </div>
+            </div>
+
+            <div class="student-info-card">
+                <h2>My Fee Details</h2>
+                <div id="studentFeeInfo"></div>
+            </div>
+
+            <div class="data-table">
+                <h3>Payment History</h3>
+                <table id="studentPaymentsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Method</th>
+                            <th>Receipt No</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentPaymentsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Import Firebase -->
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
