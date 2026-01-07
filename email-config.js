@@ -1,9 +1,9 @@
 // email-config.js
 // Replace these values with YOUR actual EmailJS credentials
 const emailConfig = {
-  serviceId: "YOUR_SERVICE_ID",
-  templateId: "YOUR_TEMPLATE_ID",
-  publicKey: "YOUR_PUBLIC_KEY"
+  serviceId: "StudentFeeReminder",
+  templateId: "template_aj6u24l",
+  publicKey: "97bIUkxhkjz0TfHD5"
 };
 
 // Initialize EmailJS
@@ -50,3 +50,4 @@ async function sendReminderEmail(parentEmail, studentName, remainingAmount, dueD
 }
 
 console.log("Email config loaded successfully!");
+
