@@ -18,9 +18,13 @@ import {
     orderBy,
     Timestamp 
 } from "firebase/firestore";
+import { initEmailJS, sendReminderEmail } from './email-config.js';
 
 let currentUser = null;
 let currentUserData = null;
+
+// Initialize EmailJS
+initEmailJS();
 
 // Authentication State Observer
 onAuthStateChanged(auth, async (user) => {
@@ -146,23 +150,17 @@ async function loadUserData() {
 
 // Tab Navigation
 window.showTab = function(tabName) {
-    // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.style.display = 'none';
     });
     
-    // Remove active class from all buttons
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
     });
     
-    // Show selected tab
     document.getElementById(tabName + 'Tab').style.display = 'block';
-    
-    // Add active class to clicked button
     event.target.classList.add('active');
     
-    // Load data for the selected tab
     if (tabName === 'students') loadStudents();
     else if (tabName === 'fees') loadFees();
     else if (tabName === 'payments') loadPayments();
@@ -289,7 +287,6 @@ window.addPayment = async function() {
     try {
         showLoading();
         
-        // Add payment record
         await addDoc(collection(db, "payments"), {
             studentId: studentId,
             amount: amount,
@@ -300,7 +297,6 @@ window.addPayment = async function() {
             createdAt: Timestamp.now()
         });
 
-        // Update fee record
         const feeQuery = query(collection(db, "feeRecords"), where("studentId", "==", studentId));
         const feeSnapshot = await getDocs(feeQuery);
         
@@ -465,13 +461,28 @@ async function loadReminders() {
                 
                 if (isOverdue || isDueSoon) {
                     const row = tbody.insertRow();
+                    const day = String(dueDate.getDate()).padStart(2, '0');
+                    const month = String(dueDate.getMonth() + 1).padStart(2, '0');
+                    const year = dueDate.getFullYear();
+                    const displayDate = `${day}/${month}/${year}`;
+                    const statusText = isOverdue ? 'OVERDUE' : 'DUE SOON';
+                    
+                    const emailBtn = `<button class="primary-btn send-reminder-btn" 
+                        data-email="${student.email || ''}" 
+                        data-name="${student.name}" 
+                        data-remaining="${fee.remainingAmount}" 
+                        data-date="${displayDate}" 
+                        data-total="${fee.totalFee}" 
+                        data-paid="${fee.paidAmount}" 
+                        data-status="${statusText}">Send Email</button>`;
+                    
                     row.innerHTML = `
                         <td>${student.name}</td>
-                        <td>${student.parentContact}</td>
+                        <td>${student.email || 'No email'}</td>
                         <td>₹${fee.remainingAmount}</td>
-                        <td>${dueDate.toLocaleDateString()}</td>
-                        <td><span class="status ${isOverdue ? 'overdue' : 'warning'}">${isOverdue ? 'OVERDUE' : 'DUE SOON'}</span></td>
-                        <td><button onclick="sendReminder('${student.parentContact}', '${student.name}', ${fee.remainingAmount})" class="primary-btn">Send Reminder</button></td>
+                        <td>${displayDate}</td>
+                        <td><span class="status ${isOverdue ? 'overdue' : 'warning'}">${statusText}</span></td>
+                        <td>${emailBtn}</td>
                     `;
                 }
             }
@@ -479,20 +490,68 @@ async function loadReminders() {
 
         document.getElementById('overdueCount').textContent = overdueCount;
         document.getElementById('dueSoonCount').textContent = dueSoonCount;
+        
+        // Add event listeners to all send reminder buttons
+        document.querySelectorAll('.send-reminder-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const email = this.getAttribute('data-email');
+                const name = this.getAttribute('data-name');
+                const remaining = this.getAttribute('data-remaining');
+                const date = this.getAttribute('data-date');
+                const total = this.getAttribute('data-total');
+                const paid = this.getAttribute('data-paid');
+                const status = this.getAttribute('data-status');
+                
+                sendReminder(email, name, remaining, date, total, paid, status);
+            });
+        });
     } catch (error) {
         console.error('Error loading reminders:', error);
     }
 }
 
-// Send Reminder (placeholder - you would integrate SMS/Email service here)
-window.sendReminder = function(contact, studentName, amount) {
-    alert(`Reminder would be sent to ${contact}:\n\nDear Parent,\n\nThis is a reminder that ${studentName} has a pending fee of ₹${amount}. Please clear the dues at the earliest.\n\nThank you!`);
+// Send Reminder Email
+window.sendReminder = async function(parentEmail, studentName, remainingAmount, dueDate, totalFee, paidAmount, status) {
+    console.log('sendReminder called with:', { parentEmail, studentName, remainingAmount, dueDate, totalFee, paidAmount, status });
+    
+    if (!parentEmail || !parentEmail.includes('@')) {
+        alert('Invalid email address. Please update the student record with a valid email.');
+        return;
+    }
+
+    const confirmed = confirm(`Send fee reminder email to ${parentEmail} for ${studentName}?`);
+    
+    if (!confirmed) {
+        console.log('User cancelled');
+        return;
+    }
+
+    console.log('Sending email...');
+    showLoading();
+    
+    const result = await sendReminderEmail(
+        parentEmail,
+        studentName,
+        remainingAmount,
+        dueDate,
+        totalFee,
+        paidAmount,
+        status
+    );
+    
+    console.log('Email result:', result);
+    hideLoading();
+    
+    if (result.success) {
+        alert('✅ Reminder email sent successfully to ' + parentEmail);
+    } else {
+        alert('❌ Failed to send email: ' + result.message);
+    }
 };
 
 // Load Student Dashboard Data
 async function loadStudentData() {
     try {
-        // Find student record
         const studentsQuery = query(collection(db, "students"), where("email", "==", currentUser.email));
         const studentsSnapshot = await getDocs(studentsQuery);
         
@@ -500,7 +559,6 @@ async function loadStudentData() {
             const studentDoc = studentsSnapshot.docs[0];
             const studentId = studentDoc.id;
             
-            // Load fee records
             const feeQuery = query(collection(db, "feeRecords"), where("studentId", "==", studentId));
             const feeSnapshot = await getDocs(feeQuery);
             
@@ -528,7 +586,6 @@ async function loadStudentData() {
                 feeInfoDiv.innerHTML = '<p>No fee records found.</p>';
             }
             
-            // Load payment history
             const paymentsQuery = query(collection(db, "payments"), where("studentId", "==", studentId));
             const paymentsSnapshot = await getDocs(paymentsQuery);
             
