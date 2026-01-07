@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "Student Fee Reminder System",
   "main": "server.js",
-  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "firebase": "^10.7.1"
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
