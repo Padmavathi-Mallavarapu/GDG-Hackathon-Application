@@ -1,33 +1,11 @@
-import { auth, db } from './firebase-config.js';
-import { 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    signOut,
-    onAuthStateChanged 
-} from "firebase/auth";
-import { 
-    collection, 
-    addDoc, 
-    getDocs, 
-    doc, 
-    setDoc, 
-    getDoc,
-    query,
-    where,
-    updateDoc,
-    orderBy,
-    Timestamp 
-} from "firebase/firestore";
-import { initEmailJS, sendReminderEmail } from './email-config.js';
+// app.js - Fixed version without ES6 imports
+// The auth, db, and emailjs are now available globally from firebase-config.js and email-config.js
 
 let currentUser = null;
 let currentUserData = null;
 
-// Initialize EmailJS
-initEmailJS();
-
 // Authentication State Observer
-onAuthStateChanged(auth, async (user) => {
+firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
         currentUser = user;
         await loadUserData();
@@ -73,7 +51,7 @@ window.login = async function() {
 
     try {
         showLoading();
-        await signInWithEmailAndPassword(auth, email, password);
+        await firebase.auth().signInWithEmailAndPassword(email, password);
         hideLoading();
     } catch (error) {
         hideLoading();
@@ -101,15 +79,15 @@ window.signup = async function() {
 
     try {
         showLoading();
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
         
         // Create user document in Firestore
-        await setDoc(doc(db, "users", userCredential.user.uid), {
+        await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
             name: name,
             email: email,
             phoneNumber: phone,
             role: role,
-            createdAt: Timestamp.now()
+            createdAt: firebase.firestore.Timestamp.now()
         });
 
         hideLoading();
@@ -123,7 +101,7 @@ window.signup = async function() {
 // Logout Function
 window.logout = async function() {
     try {
-        await signOut(auth);
+        await firebase.auth().signOut();
         showAuthSection();
     } catch (error) {
         alert('Logout failed: ' + error.message);
@@ -133,8 +111,8 @@ window.logout = async function() {
 // Load User Data
 async function loadUserData() {
     try {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-        if (userDoc.exists()) {
+        const userDoc = await firebase.firestore().collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists) {
             currentUserData = { id: userDoc.id, ...userDoc.data() };
             
             if (currentUserData.role === 'admin') {
@@ -214,7 +192,7 @@ window.addStudent = async function() {
         section: document.getElementById('section').value,
         email: document.getElementById('studentEmail').value,
         parentContact: document.getElementById('parentContact').value,
-        createdAt: Timestamp.now()
+        createdAt: firebase.firestore.Timestamp.now()
     };
 
     if (!studentData.name || !studentData.rollNumber || !studentData.class) {
@@ -224,7 +202,7 @@ window.addStudent = async function() {
 
     try {
         showLoading();
-        await addDoc(collection(db, "students"), studentData);
+        await firebase.firestore().collection('students').add(studentData);
         hideLoading();
         alert('Student added successfully!');
         hideAddStudentForm();
@@ -253,14 +231,14 @@ window.addFeeRecord = async function() {
         totalFee: totalFee,
         paidAmount: 0,
         remainingAmount: totalFee,
-        dueDate: Timestamp.fromDate(new Date(dueDate)),
+        dueDate: firebase.firestore.Timestamp.fromDate(new Date(dueDate)),
         status: 'pending',
-        createdAt: Timestamp.now()
+        createdAt: firebase.firestore.Timestamp.now()
     };
 
     try {
         showLoading();
-        await addDoc(collection(db, "feeRecords"), feeData);
+        await firebase.firestore().collection('feeRecords').add(feeData);
         hideLoading();
         alert('Fee record added successfully!');
         hideAddFeeForm();
@@ -287,18 +265,18 @@ window.addPayment = async function() {
     try {
         showLoading();
         
-        await addDoc(collection(db, "payments"), {
+        await firebase.firestore().collection('payments').add({
             studentId: studentId,
             amount: amount,
-            paymentDate: Timestamp.fromDate(new Date(paymentDate)),
+            paymentDate: firebase.firestore.Timestamp.fromDate(new Date(paymentDate)),
             method: method,
             receiptNumber: receiptNumber,
             recordedBy: currentUser.uid,
-            createdAt: Timestamp.now()
+            createdAt: firebase.firestore.Timestamp.now()
         });
 
-        const feeQuery = query(collection(db, "feeRecords"), where("studentId", "==", studentId));
-        const feeSnapshot = await getDocs(feeQuery);
+        const feeQuery = firebase.firestore().collection('feeRecords').where("studentId", "==", studentId);
+        const feeSnapshot = await feeQuery.get();
         
         if (!feeSnapshot.empty) {
             const feeDoc = feeSnapshot.docs[0];
@@ -306,11 +284,11 @@ window.addPayment = async function() {
             const newPaidAmount = feeData.paidAmount + amount;
             const newRemainingAmount = feeData.totalFee - newPaidAmount;
             
-            await updateDoc(doc(db, "feeRecords", feeDoc.id), {
+            await firebase.firestore().collection('feeRecords').doc(feeDoc.id).update({
                 paidAmount: newPaidAmount,
                 remainingAmount: newRemainingAmount,
                 status: newRemainingAmount <= 0 ? 'paid' : 'pending',
-                updatedAt: Timestamp.now()
+                updatedAt: firebase.firestore.Timestamp.now()
             });
         }
 
@@ -333,7 +311,7 @@ async function loadAdminData() {
 // Load Students
 async function loadStudents() {
     try {
-        const studentsSnapshot = await getDocs(collection(db, "students"));
+        const studentsSnapshot = await firebase.firestore().collection('students').get();
         const tbody = document.getElementById('studentsTableBody');
         tbody.innerHTML = '';
 
@@ -357,8 +335,8 @@ async function loadStudents() {
 // Load Fees
 async function loadFees() {
     try {
-        const feesSnapshot = await getDocs(collection(db, "feeRecords"));
-        const studentsSnapshot = await getDocs(collection(db, "students"));
+        const feesSnapshot = await firebase.firestore().collection('feeRecords').get();
+        const studentsSnapshot = await firebase.firestore().collection('students').get();
         
         const studentsMap = {};
         studentsSnapshot.forEach(doc => {
@@ -397,8 +375,8 @@ async function loadFees() {
 // Load Payments
 async function loadPayments() {
     try {
-        const paymentsSnapshot = await getDocs(collection(db, "payments"));
-        const studentsSnapshot = await getDocs(collection(db, "students"));
+        const paymentsSnapshot = await firebase.firestore().collection('payments').get();
+        const studentsSnapshot = await firebase.firestore().collection('students').get();
         
         const studentsMap = {};
         studentsSnapshot.forEach(doc => {
@@ -431,8 +409,8 @@ async function loadPayments() {
 // Load Reminders
 async function loadReminders() {
     try {
-        const feesSnapshot = await getDocs(collection(db, "feeRecords"));
-        const studentsSnapshot = await getDocs(collection(db, "students"));
+        const feesSnapshot = await firebase.firestore().collection('feeRecords').get();
+        const studentsSnapshot = await firebase.firestore().collection('students').get();
         
         const studentsMap = {};
         studentsSnapshot.forEach(doc => {
@@ -552,15 +530,15 @@ window.sendReminder = async function(parentEmail, studentName, remainingAmount, 
 // Load Student Dashboard Data
 async function loadStudentData() {
     try {
-        const studentsQuery = query(collection(db, "students"), where("email", "==", currentUser.email));
-        const studentsSnapshot = await getDocs(studentsQuery);
+        const studentsQuery = firebase.firestore().collection('students').where("email", "==", currentUser.email);
+        const studentsSnapshot = await studentsQuery.get();
         
         if (!studentsSnapshot.empty) {
             const studentDoc = studentsSnapshot.docs[0];
             const studentId = studentDoc.id;
             
-            const feeQuery = query(collection(db, "feeRecords"), where("studentId", "==", studentId));
-            const feeSnapshot = await getDocs(feeQuery);
+            const feeQuery = firebase.firestore().collection('feeRecords').where("studentId", "==", studentId);
+            const feeSnapshot = await feeQuery.get();
             
             const feeInfoDiv = document.getElementById('studentFeeInfo');
             feeInfoDiv.innerHTML = '';
@@ -586,8 +564,8 @@ async function loadStudentData() {
                 feeInfoDiv.innerHTML = '<p>No fee records found.</p>';
             }
             
-            const paymentsQuery = query(collection(db, "payments"), where("studentId", "==", studentId));
-            const paymentsSnapshot = await getDocs(paymentsQuery);
+            const paymentsQuery = firebase.firestore().collection('payments').where("studentId", "==", studentId);
+            const paymentsSnapshot = await paymentsQuery.get();
             
             const tbody = document.getElementById('studentPaymentsTableBody');
             tbody.innerHTML = '';
@@ -611,7 +589,7 @@ async function loadStudentData() {
 // Populate Student Select Dropdown
 async function populateStudentSelect(selectId) {
     try {
-        const studentsSnapshot = await getDocs(collection(db, "students"));
+        const studentsSnapshot = await firebase.firestore().collection('students').get();
         const select = document.getElementById(selectId);
         select.innerHTML = '<option value="">Select Student</option>';
         
