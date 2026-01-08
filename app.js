@@ -1,6 +1,4 @@
-// app.js - Fixed version without ES6 imports
-// The auth, db, and emailjs are now available globally from firebase-config.js and email-config.js
-
+// app.js - Students signup automatically, admin created manually
 let currentUser = null;
 let currentUserData = null;
 
@@ -59,13 +57,12 @@ window.login = async function() {
     }
 };
 
-// Signup Function
+// Signup Function (Always creates as student)
 window.signup = async function() {
     const name = document.getElementById('signupName').value;
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     const phone = document.getElementById('signupPhone').value;
-    const role = document.getElementById('signupRole').value;
 
     if (!name || !email || !password || !phone) {
         alert('Please fill in all fields');
@@ -81,12 +78,12 @@ window.signup = async function() {
         showLoading();
         const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
         
-        // Create user document in Firestore
+        // Create user document in Firestore - ALWAYS as 'student'
         await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
             name: name,
             email: email,
             phoneNumber: phone,
-            role: role,
+            role: 'student',  // Always set to student
             createdAt: firebase.firestore.Timestamp.now()
         });
 
@@ -469,7 +466,6 @@ async function loadReminders() {
         document.getElementById('overdueCount').textContent = overdueCount;
         document.getElementById('dueSoonCount').textContent = dueSoonCount;
         
-        // Add event listeners to all send reminder buttons
         document.querySelectorAll('.send-reminder-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const email = this.getAttribute('data-email');
