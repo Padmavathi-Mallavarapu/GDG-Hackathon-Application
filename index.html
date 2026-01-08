@@ -21,17 +21,14 @@
                 <p>Don't have an account? <a href="#" onclick="showSignup()">Sign Up</a></p>
             </div>
 
-            <!-- Signup Form -->
+            <!-- Signup Form (Student Only) -->
             <div id="signupForm" class="form-container" style="display: none;">
                 <h2>Sign Up</h2>
                 <input type="text" id="signupName" placeholder="Full Name" required>
                 <input type="email" id="signupEmail" placeholder="Email" required>
                 <input type="password" id="signupPassword" placeholder="Password (min 6 characters)" required>
                 <input type="tel" id="signupPhone" placeholder="Phone Number" required>
-                <select id="signupRole">
-                    <option value="student">Student</option>
-                    <option value="admin">Admin</option>
-                </select>
+                <!-- Role selection removed - automatically set to 'student' -->
                 <button onclick="signup()">Sign Up</button>
                 <p>Already have an account? <a href="#" onclick="showLogin()">Login</a></p>
             </div>
@@ -230,18 +227,15 @@
         <div class="spinner"></div>
     </div>
 
-    <!-- IMPORTANT: Load Firebase CDN scripts FIRST before your custom scripts -->
-    <!-- Firebase App (Core) -->
+    <!-- Firebase CDN scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <!-- Firebase Authentication -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <!-- Firebase Firestore -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
     <!-- EmailJS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     
-    <!-- Your custom scripts (load AFTER Firebase CDN) -->
+    <!-- Your custom scripts -->
     <script src="firebase-config.js"></script>
     <script src="email-config.js"></script>
     <script src="app.js"></script>
